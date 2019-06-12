@@ -1,174 +1,257 @@
-(function(){
-"use strict";
-'use strict';
+(function () {
+    "use strict";
+    'use strict';
 
+    var app = angular.module('viewCustom', ['angularLoad']);
 
-// import npm package by name (recommended)
-import 'primo-explore-unpaywall';
+    /****************************************************************************************************/
 
-// import copy/pasted 'unpaywall.module.js' locally from js/
-// import './unpaywall.module';
+        /*In case of CENTRAL_PACKAGE - comment out the below line to replace the other module definition*/
 
-//load app 'viewCustom' as a module with [] dependencies
-var app = angular.module('viewCustom', ['angularLoad', 'bulibUnpaywall']);
+        /*var app = angular.module('centralCustom', ['angularLoad']);*/
 
-// - configure unpaywall - //
-app.component('prmSearchResultAvailabilityLineAfter', {
-    template: '<bulib-unpaywall></bulib-unpaywall>'
-  })
-  .constant('unpaywallConfig', {
-    "email":"matthew.codey@gmail.com",
-    "showOnResultsPage":true,
-    "overrideOACheck":false,
-    "showVersionLabel":true,
-    "logToConsole":true,
-    "showDebugTable":false,
-    "publishEvents":false,
-    "logEvent":function(category, action, label){
-      window.ga('send', 'event', category, action, label);
-    }
+    /****************************************************************************************************/
+	
+	/** Altmetrics **/
+app.controller('FullViewAfterController', ['angularLoad', '$http', '$scope', '$element', '$timeout', '$window', function (angularLoad, $http, $scope, $element, $timeout, $window) {
+    var vm = this;
+    this.$http = $http;
+    this.$element = $element;
+    this.$scope = $scope;
+    this.$window = $window;
+    vm.$onInit = function () //wait for all the bindings to be initialised
+    {
+        vm.parentElement = this.$element.parent()[0]; //the prm-full-view container
+        try {
+            vm.doi = vm.parentCtrl.item.pnx.addata.doi[0] || '';
+        } catch (e) {
+            return;
+        }
+        if (vm.doi) {
+            //If we've got a doi to work with check whether altmetrics has data for it.
+            //If so, make our div visible and create a new Altmetrics service
+            $timeout(function () {
+            $http.get('https://api.altmetric.com/v1/doi/' + vm.doi).then(function () {
+                try {
+                    //Get the altmetrics widget
+                    angularLoad.loadScript('https://d1bxh8uas1mnw7.cloudfront.net/assets/embed.js?' + Date.now()).then(function () {});
+                    //Create our new Primo service
+                    var altmetricsSection = {
+                        scrollId: "altmetrics",
+                        serviceName: "altmetrics",
+                        title: "brief.results.tabs.Altmetrics"
+                    };
+                    vm.parentCtrl.services.splice(vm.parentCtrl.services.length, 0, altmetricsSection);
+                } catch (e) {
+                    console.log(e);
+                }
+            }).catch(function (e) {
+                return;
+            });
+            }, 3000);
+        }
+        
+        
+        //move the altmetrics widget into the new Altmetrics service section
+        var unbindWatcher = this.$scope.$watch(function () {
+            return vm.parentElement.querySelector('h4[translate="brief.results.tabs.Altmetrics"]');
+        }, function (newVal, oldVal) {
+            if (newVal) {
+                //Get the section body associated with the value we're watching
+                let altContainer = newVal.parentElement.parentElement.parentElement.parentElement.children[1];
+                let almt1 = vm.parentElement.children[1].children[0];
+                if (altContainer && altContainer.appendChild && altm1) {
+                    altContainer.appendChild(altm1);
+                }
+                unbindWatcher();
+            }
+        });
+    }; // end of $onInit
+    
+    
+    //You'd also need to look at removing the various css/js scripts loaded by this.
+    //refer to: https://github.com/Det-Kongelige-Bibliotek/primo-explore-rex
+      vm.$onDestroy = function ()
+  {
+        if (this.$window._altmetric) {
+            delete this.$window._altmetric;
+        }
+        
+        if (this.$window._altmetric_embed_init) {
+            delete this.$window._altmetric_embed_init;
+        }
+        
+        if (this.$window.AltmetricTemplates) {
+            delete this.$window.AltmetricTemplates;
+        }
+  }
+    
+}]);
+app.component('prmFullViewAfter', {
+    bindings: { parentCtrl: '<' },
+    controller: 'FullViewAfterController',
+     template: '<div id="altm1" ng-if="$ctrl.doi" class="altmetric-embed" data-hide-no-mentions="true"  data-link-target="new" data-badge-type="medium-donut" data-badge-details="right" data-doi="{{$ctrl.doi}}"></div>'
+    });
+/** Altmetrics **/
+
+  app.component('prmActionListAfter', {
+    template: '<br><a href="https://libraries.usc.edu/form/need-help-report-problem" target="_blank" style="float:right;">Need Help? Report a Problem</a>'
   });
 
-angular.module('bulibUnpaywall', []).controller('unpaywallController', ['$http', '$injector', function ($http, $injector) {
-  var self = this; // 'this' changes scope inside of the $http.get(). 'self' is easier to track/trace
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
 
-  var LOG_CONFIG_DISCOVERY = false;
+  ga('create', 'UA-3218414-30', 'auto');
+  ga('send', 'pageview');
+   
+// BEGIN Add link to fines and fees payment - with IE
 
-  var logEventToGoogleAnalytics = function logEventToGoogleAnalytics(category, action, label) {
-    if (window.ga) {
-      window.ga('send', 'event', category, action, label);
-    }
-  };
+var fine_button = '<a class="button-link md-button md-primoExplore-theme md-ink-ripple" id="payment-button" href="https://lotus.usc.edu/form.htm" target="_blank"><span>PAY FINE</span><prm-icon icon-type="svg" svg-icon-set="primo-ui" icon-definition="open-in-new"><md-icon md-svg-icon="primo-ui:open-in-new" alt="" class="md-primoExplore-theme" aria-hidden="true"></md-icon></prm-icon></a>';
 
-  // obtain custom configuration information from 'unpaywallConfig' or primo-studio constant
-  var unpaywallConfig = {};
-  if ($injector.modules && LOG_CONFIG_DISCOVERY) {
-    console.log($injector.modules);
-  }
-  if ($injector.has('unpaywallConfig')) {
-    if (LOG_CONFIG_DISCOVERY) {
-      console.log("'unpaywallConfig' found: ");
-    }
-    unpaywallConfig = $injector.get('unpaywallConfig');
-  }
-  if ($injector.has('primoExploreUnpaywallStudioConfig')) {
-    if (LOG_CONFIG_DISCOVERY) {
-      console.log("'primoExploreUnpaywallStudioConfig' found: ");
-    }
-    unpaywallConfig = $injector.get('primoExploreUnpaywallStudioConfig');
-  }
-  if (LOG_CONFIG_DISCOVERY) {
-    console.log(unpaywallConfig);
-  }
-
-  // provide 'unpaywall' organization with default value including some context that it's from us (for rate-limiting)
-  self.email = unpaywallConfig.email || "primo-explore-unpaywall@npmjs.com";
-
-  // provide additional customization options (with defaults)
-  self.logToConsole = Object.keys(unpaywallConfig).includes("logToConsole") ? unpaywallConfig.logToConsole : true;
-  self.publishEvents = Object.keys(unpaywallConfig).includes("publishEvents") ? unpaywallConfig.publishEvents : false;
-  self.showVersionLabel = Object.keys(unpaywallConfig).includes("showVersionLabel") ? unpaywallConfig.showVersionLabel : false;
-  self.showDebugTable = Object.keys(unpaywallConfig).includes("showDebugTable") ? unpaywallConfig.showDebugTable : false;
-  self.showOnResultsPage = Object.keys(unpaywallConfig).includes("showOnResultsPage") ? unpaywallConfig.showOnResultsPage : true;
-  self.overrideOACheck = Object.keys(unpaywallConfig).includes("overrideOACheck") ? unpaywallConfig.overrideOACheck : false;
-  self.logEvent = unpaywallConfig.logEvent || logEventToGoogleAnalytics;
-
-  // conditionally log to the console
-  self.logMessageToConsole = function (message) {
-    if (self.logToConsole) {
-      console.log("bulib-unpaywall) " + message);
-    }
-  };
-
-  // conditionally call customized 'logEvent'
-  self.logEventToAnalytics = function (category, action, label) {
-    self.logMessageToConsole("triggering '" + category + "." + action + "' event [publish=" + self.publishEvents + "].");
-    if (self.publishEvents) {
-      self.logEvent(category, action, label);
-    }
-  };
-
-  // ng-click response that logs data to google analytics
-  self.trackLinkClick = function (doi) {
-    self.logMessageToConsole("unpaywall link used for doi: " + doi);
-    self.logEventToAnalytics("unpaywall", "usage", self.listOrFullViewLabel);
-  };
-
-  self.$postLink = function () {
-    self.parentCtrl = self.prmSearchResultAvailabilityLine;
-    var item = self.parentCtrl.result; // item data is stored in 'prmSearchResultAvailability' (its parent)
-
-    // obtain contextual info on whether you're on the result list of the full item view
-    var onFullView = this.parentCtrl.isFullView || this.parentCtrl.isOverlayFullView;
-    self.listOrFullViewLabel = onFullView ? 'full' : 'list';
-    self.show = onFullView || self.showOnResultsPage;
-
-    try {
-      // obtain doi and open access information from the item PNX (metadata)
-      var addata = item.pnx.addata;
-      if (addata) {
-        this.doi = addata.hasOwnProperty("doi") ? addata.doi[0] : null; //default to first doi (list)
-        this.is_oa = addata.hasOwnProperty("oa"); //true if property is present at all (regardless of value)
-      }
-
-      // if there's a doi and it's not already open access, ask the oadoi.org for an OA link
-      if (this.doi && (!this.is_oa || self.overrideOACheck) && self.show) {
-        self.logEventToAnalytics('unpaywall', 'api-call', self.listOrFullViewLabel);
-
-        // make the actual call to unpaywall API
-        var apiUrl = "https://api.oadoi.org/v2/" + self.doi + "?email=" + self.email;
-        self.logMessageToConsole("-> making 'api-call' to " + apiUrl);
-        $http.get(encodeURI(apiUrl)).then(function (successResponse) {
-          // if there is a "best open access location", save it so it can be used in the template above
-          var best_oa_location = successResponse.data.best_oa_location;
-          if (!best_oa_location) {
-            return; // can't get what we want from unpaywall. returning with nothing
-          }
-
-          // get the "best" content link from this "best_oa_location"
-          self.best_oa_link = best_oa_location.url || "";
-          self.logMessageToConsole("successfully acquired a 'best_oa_location' for doi '" + self.doi + "' at url: " + self.best_oa_link);
-          self.logEventToAnalytics('unpaywall', 'api-success', self.listOrFullViewLabel);
-
-          // optionally display whether the link is to a published, submitted, or accepted version
-          var best_oa_version = best_oa_location.version.toLowerCase() || "";
-          if (best_oa_version.includes("publish")) {
-            self.best_oa_version = ""; // users should assume it's the 'published' version without it being clarified in the UI
-          } else {
-            self.best_oa_version = best_oa_version.includes("submit") ? "Submitted" : "Accepted";
-          }
-        }, function (errorResponse) {
-          self.logMessageToConsole("[error status: " + errorResponse.status + "] error calling unpaywall API: " + errorResponse.statusText);
-        });
-      }
-    } catch (e) {
-      self.logMessageToConsole("error caught in unpaywallController: " + e.message);
-    }
-  };
-}]).component('bulibUnpaywall', {
-  require: {
-    prmSearchResultAvailabilityLine: '^prmSearchResultAvailabilityLine'
-  },
-  template: '\
-      <unpaywall ng-if="$ctrl.show">\
-        <div layout="flex" ng-if="$ctrl.best_oa_link" class="layout-row" style="margin-top: 5px;">\
-          <a ng-click="$ctrl.trackLinkClick($ctrl.doi)" target="_blank" href="{{$ctrl.best_oa_link}}"\
-            style="margin-left: 3px; margin-top: 3px;" rel="noreferrer">\
-            <prm-icon icon-type="svg" svg-icon-set="action" icon-definition="ic_lock_open_24px" style="color: #f68212;"></prm-icon>\
-            <strong>Open Access</strong> available via unpaywall\
-            <span ng-if="$ctrl.showVersionLabel && $ctrl.best_oa_version">&nbsp({{$ctrl.best_oa_version}} version)</span>\
-            <prm-icon external-link icon-type="svg" svg-icon-set="primo-ui" icon-definition="open-in-new"></prm-icon>\
-          </a>\
-        </div>\
-        <div ng-if="$ctrl.showDebugTable" class="layout-row">\
-          <table>\
-            <tr><td><strong>doi</strong></td><td>{{$ctrl.doi}}</td></tr>\
-            <tr><td><strong>is_OA</strong></td><td>{{$ctrl.is_oa}}</td>\
-            <tr><td><strong>best_oa_link</strong></td><td>{{$ctrl.best_oa_link}}</td></tr>\
-            <tr><td><strong>best_oa_version</strong></td><td>{{$ctrl.best_oa_version}}</td></tr>\
-          </table>\
-        </div>\
-      </unpaywall>',
-  controller: 'unpaywallController'
+app.component('prmFinesOverviewAfter', {
+    template: fine_button
 });
+
+app.component('prmFinesAfter', {
+    template: fine_button
+});
+
+// END Add link to fines and fees payment - with IE
+
+// AEON links
+app.controller('RequestServicesAfterController', [function () {
+    var vm = this;
+}]);
+
+app.component('prmRequestServicesAfter', {
+    bindings: { parentCtrl: '<' },
+    controller: 'RequestServicesAfterController',
+    template: `<remove-specific-request-for-location parent-ctrl="$ctrl.parentCtrl"></remove-specific-request-for-location>`
+
+});
+
+app.component('almaHowovpAfter', {
+    bindings: { parentCtrl: '<' },
+    controller: 'RequestServicesAfterController',
+    template: `<remove-specific-request-for-location parent-ctrl="$ctrl.parentCtrl"></remove-specific-request-for-location>`
+
+});
+
+app.constant('removeSpecificRequestForLocationStudioConfig', [
+    { "type": "AEON", "libraryCode": "SPECCOLL", "subLocationCode": "spe-vltarc, spe-dmlfac, spe-graarc, spe-arc, spe-aav, spe-bkmar8, spe-bkmav7, spe-bkmst8, spe-bkmcr8, spe-bkmco8, spe-bkmcs8, spe-elb238, spe-elb343, spe-bkmofc, spe-bkmmf8, spe-bkmov8, spe-dml233, spe-bkmso8, spe-dml205, spe-dml207, spe-dml208, spe-209A, spe-dml214, spe-ealarc, spe-ealeas, spe-fml, spe-fmo, spe-hol, spe-hov, spe-hor, spe-ofc, spe-mfr, spe-lv7rar, spe-lv8rar, spe-grarar, spe-lv7rfl, spe-lv8rfl, spe-lv7rm, spe-lv7rov, spe-lv8rov, spe-lv7sm, spe-lv7rso, spe-lv8rso, spe-eassto, UNASSIGNED, spe-vlt, spe-vltbrg, spe-vltbwi, spe-vltcre, spe-vltflt, spe-vltovr, spe-vltwid, spe-vla", "displayLabel": "Request from Special Collections" },
+    { "type": "AEON", "libraryCode": "CINEMA", "subLocationCode": "cin-cag, cin-cgo, cin-cgs", "displayLabel": "Request from Cinema Arts Library" },
+    { "type": "AEON", "libraryCode": "ONEARCHIVE", "subLocationCode": "one-arc, one-stk, one-exb, one-gpf, one-lpf, one-ovr, one-pmo, one-pam, one-prr, one-plf, one-ref", "displayLabel": "Request from ONE Archives" },
+    { "type": "ILL", "displayLabel": "Request via interlibrary loan (USC Libraries)", "genres": ['book', 'bookitem', 'conference', 'journal']},
+    { "type": "ILL", "displayLabel": "Request via interlibrary loan (Health Science Libraries)", "genres": ['article', 'proceeding']}
+]);
+
+app.constant('aeonLocationsInternalExternalMap',
+    {"spe-dmlfac": "DML FACULTY HALL", "spe-ealeas": "EAST ASIAN STORAGE EAST", "spe-graarc": "ARCHIVES GRAND", "spe-elb238": "BOECKMANN EAST 238", "spe-elb343": "BOECKMANN EAST 343-344", "spe-grarar": "RARE-BOOKS-GRAND", "spe-eassto": "SPECIAL COLLECTIONS EAST STORAGE", "spe-vltbrg": "VAULT-244B-REG", "spe-vltbwi": "VAULT-244B-WIDE", "spe-vltcre": "VAULT-244C-REG", "spe-vltflt": "VAULT-FLAT", "spe-vltovr": "VAULT-OVER", "spe-vltwid": "VAULT-WIDE", "cin-eassto": "EAST STORAGE"}
+);
+
+app.controller('removeSpecificRequestForLocationController', ['removeSpecificRequestForLocationStudioConfig', '$scope','$timeout','$translate', 'aeonLocationsInternalExternalMap', function (addonParameters, $scope, $timeout, $translate, aeonLocationsInternalExternalMap) {
+    var vm = this.parentCtrl;
+    var services2;
+    var servicesWithReolvedLinks;
+    var fakeGuest = false;
+    this.getFakeGuest = getFakeGuest;
+    this.$onInit = function () {
+        if (!this.parentCtrl.isLoggedIn()){
+            fakeGuest = true;
+
+            this.parentCtrl.isLoggedIn = function() {
+                return true;
+            };
+
+            if (this.parentCtrl.getServicesFromIls) {
+                this.parentCtrl.getServicesFromIls();
+            } else if (this.parentCtrl.getHowToGetitServicesFromIls) {
+                this.parentCtrl.getHowToGetitServicesFromIls();
+            }
+        }
+
+        $scope.$watch(function () {
+            return vm.services.serviceinfo ? vm.services.serviceinfo : undefined;
+        }, function () {
+            if ((!services2 && vm.services.serviceinfo) || (vm.services.serviceinfo && services2 && services2.length !== vm.services.serviceinfo.length)) {
+                services2 = vm.services.serviceinfo;
+                calculateRemove();
+            } else {
+                services2 = vm.services.serviceinfo;
+            }
+        });
+    };
+
+    function getFakeGuest(){
+        return fakeGuest;
+    }
+
+    function calculateRemove() {
+        for (let addonParameter of addonParameters) {
+            var type = addonParameter.type;
+            var libraryCode = addonParameter.libraryCode;
+            var subLocationCodes = addonParameter.subLocationCode;
+            var displayLabel = addonParameter.displayLabel;
+            var subLocationCode = subLocationCodes ? subLocationCodes.split(/\s*,\s*/) : subLocationCodes;
+            var holding = [];
+
+            if (type === "AEON" && vm.item.delivery.holding) {
+                holding = vm.item.delivery.holding.filter(function (holding) {
+                    return libraryCode === holding.libraryCode;
+                }).filter(function (holding) {
+                    return subLocationCode.indexOf(holding.subLocationCode) !== -1;
+                });
+            }
+
+            var aeonAndHolding = (type === "AEON" && holding.length === 0);
+            if (services2.length > 0 && aeonAndHolding) {
+                services2 = services2.filter(function (e) {
+                    return displayLabel !== e.type;
+                });
+            }
+            else {
+                if (services2.length > 0) {
+                    services2.forEach((service) => {
+                        if (service.type === displayLabel) {
+                            if (holding.length > 0 || type === "ILL") {
+                                if (type === 'AEON') {
+                                    let match = holding[0];
+                                    let link = service['link-to-service'];
+                                    link = link.replace(/location=[^&]*(&)?/, 'location=' + (aeonLocationsInternalExternalMap[match.subLocationCode] ? aeonLocationsInternalExternalMap[match.subLocationCode] : match.subLocation).toLowerCase() + '$1');
+                                    link = link.replace(/callnum=[^&]*(&)?/, 'callnum=' + match.callNumber + '$1');
+                                    service['link-to-service'] = link;
+                                }
+
+                                if (servicesWithReolvedLinks === undefined) {
+                                    servicesWithReolvedLinks = [];
+                                }
+                                servicesWithReolvedLinks.push(service);
+                            }
+                        }
+                    });
+                }
+            }
+        }
+        vm.services.serviceinfo = fakeGuest ? angular.copy(servicesWithReolvedLinks) : services2;
+        servicesWithReolvedLinks = [];
+    }
+}]);
+
+app.component('removeSpecificRequestForLocation', {
+    controller: 'removeSpecificRequestForLocationController',
+    bindings: { parentCtrl: '<' },
+    template:`<div ng-if="$ctrl.getFakeGuest()" layout="row" class="bar alert-bar zero-margin-bottom" layout-align="center center">
+                <span class="bar-text margin-right-small" translate="nui.request.signin"></span>
+                <prm-authentication [is-logged-in]="false" flex="none"></prm-authentication>
+              </div>`
+});
+
+
+// END AEON Links
+
+
+
+
 })();
