@@ -597,7 +597,7 @@ md-card.transparent-card:nth-child(2) {
 
 /***** Matt's changes *****/
 
-/*Get rid of that stupid drop shadow on the logo*/
+/*Get rid of the drop shadow on the logo*/
 a.md-primoExplore-theme{
   box-shadow: none;
 }
